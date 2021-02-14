@@ -1,4 +1,4 @@
-<h1 align="center">covid19-Impfmonitoring-plot</h1>
+<h1 align="center">covid19-Impfmonitoring</h1>
 
 <p align="center">
 <a href="https://github.com/meetunix/covid19-impfmonitoring-plot/blob/main/LICENSE" title="License">

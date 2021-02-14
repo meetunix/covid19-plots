@@ -1,4 +1,4 @@
-matplotlib.pyplot
+matplotlib
 pandas
 requests
 bs4
