@@ -8,7 +8,7 @@
 Das Python3-Skript `plot_vaccination_ratio.py` generiert folgenden Plot
 auf meiner Website: [Covid-19 Impfmonitoring](https://nachtsieb.de/covid-19.html).
 
-![Covid-19 Impfquoten pro Bundesland](media/current_vaccination.png)
+<img src="https://nachtsieb.de/img/current_vaccination.png">
 
 
 Dazu durchsucht es die

@@ -48,7 +48,6 @@ def get_file_from_rki():
             pass
 
     link = BASE_URL + link
-    # print(link)
     response = requests.get(link)
 
     excel_file = response.content
@@ -204,20 +203,25 @@ def plot(rki_file, context):
     dosis_total = [i + j for i, j in zip(dosis_first, dosis_second)]
     write_state_data_to_csv(states_short, dosis_total, context)
 
+    # Percentage of people who have received the first dose.
     vacc_rate = [i / j * 100 for i, j in zip(dosis_first, inhabitants)]
-    vacc_rate_2 = [i / j * 100 for i, j in zip(dosis_second, inhabitants)]
-    total_rate = [i + j for i, j in zip(vacc_rate, vacc_rate_2)]
-    rest = [100 - i for i in total_rate]
 
-    # print(vacc_rate)
-    # print(rest)
+    # Percentage of people who have received the second dose.
+    vacc_rate_2 = [i / j * 100 for i, j in zip(dosis_second, inhabitants)]
+
+    # Percentage of people who have received the first dose but not the second.
+    vacc_diff = [i - j for i, j in zip(vacc_rate, vacc_rate_2)]
+
+    rest = [100 - (i + j) for i, j in zip(vacc_diff, vacc_rate_2)]
+
     d = get_human_time()
 
-    plt.figure(figsize=(16, 8))
+    plt.figure(figsize=(16, 9))
     plt.style.use("seaborn")
     plt.ylabel("%", fontsize=22, labelpad=30)
     names = [
-        f"{s}\n({str(round(i, 2))})" for s, i in zip(states_short, vacc_rate_2)
+        f"{s}\n({str(round(i, 2))})\n\n[{str(round(j, 2))}]"
+        for s, i, j in zip(states_short, vacc_rate, vacc_rate_2)
     ]
     plt.xticks(range(STATES + 1), names, size=14)
     plt.yticks(range(0, 101, 10), size=14)
@@ -236,22 +240,21 @@ def plot(rki_file, context):
         color="darkgreen",
         edgecolor="white",
         width=bar_width,
-        label="Anteil Zweitimpfung erhalten",
+        label="[Anteil Zweitimpfung erhalten]",
     )
     plt.bar(
         range(STATES + 1),
-        vacc_rate,
+        vacc_diff,
         bottom=vacc_rate_2,
         color="lightgreen",
         edgecolor="white",
         width=bar_width,
-        label="Anteil Erstimpfung erhalten",
+        label="(Anteil Erstimpfung erhalten)",
     )
     plt.bar(
         range(STATES + 1),
         rest,
-        # bottom=vacc_rate,
-        bottom=total_rate,
+        bottom=vacc_rate,
         color="#ff9cA6",
         edgecolor="white",
         width=bar_width,
@@ -267,7 +270,6 @@ def plot(rki_file, context):
     )
 
     plt.text(-3.5, -3, "Quelle: RKI", fontsize=12)
-    plt.text(5, -12.5, "(Anteil Zweitimpfung erhalten in %)", fontsize=14)
 
     return plt
 
