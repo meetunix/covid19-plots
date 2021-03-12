@@ -36,8 +36,7 @@ URL = (
     BASE_URL + "DE/Content/InfAZ/N/Neuartiges_Coronavirus/Daten/Impfquoten-Tab.html"
 )
 
-PAVEL_DATA_URL = "https://pavelmayer.de/covid/risks/data.csv"
-PAVEL_DATA_LOCAL = "/pavel.csv"
+INHAB_DATA = "/CensusByRKIAgeGroups.csv"
 
 LAST_UPDATE_RKI = "/last_rki_file_hash"
 FILE_OUT = "Impfstatistik_relativ.png"
@@ -46,6 +45,25 @@ STATES = 16
 ARCHIVE = "archiv"
 
 HISTORICAL_STATE_DATA = "/hist_states.csv"
+
+fed_map = {
+    "Baden-Württemberg": "BW",
+    "Bayern": "BY",
+    "Berlin": "BE",
+    "Brandenburg": "BB",
+    "Bremen": "HB",
+    "Hamburg": "HH",
+    "Hessen": "HE",
+    "Mecklenburg-Vorpommern": "MV",
+    "Niedersachsen": "NI",
+    "Nordrhein-Westfalen": "NW",
+    "Rheinland-Pfalz": "RP",
+    "Saarland": "SL",
+    "Sachsen": "SN",
+    "Sachsen-Anhalt": "ST",
+    "Schleswig-Holstein": "SH",
+    "Thüringen": "TH",
+}
 
 
 def get_file_from_rki():
@@ -97,20 +115,15 @@ def is_rki_file_new(rki_file, context):
         return True
 
 
-def get_pavel_data(context):
-    """Try to use the local variant of pavels data.
-
-    If no local file exists, it will be downloaded.
-    """
-    file_path = Path(context["cwd"] + PAVEL_DATA_LOCAL)
+def get_inhab_data(context):
+    """Use local census data and return data frame."""
+    file_path = Path(context["cwd"] + INHAB_DATA)
 
     if not file_path.is_file():
-        response = requests.get(PAVEL_DATA_URL)
-        if not response.status_code == 200:
-            sys.stderr.write(f"Unable to fetch data from {PAVEL_DATA_URL}")
-            sys.exit(2)
-        else:
-            file_path.write_text(response.text)
+        sys.stderr(f"Unable to load {INHAB_DATA}")
+        sys.exit(2)
+
+    return pd.read_csv(context["cwd"] + INHAB_DATA)
 
 
 def store_rki_file(rki_file, context):
@@ -152,24 +165,6 @@ def write_state_data_to_csv(heading, values, context):
 
 def plot(rki_file, context):
     """Plot a stacked graph."""
-    fed_map = {
-        "Baden-Württemberg": "BW",
-        "Bayern": "BY",
-        "Berlin": "BE",
-        "Brandenburg": "BB",
-        "Bremen": "HB",
-        "Hamburg": "HH",
-        "Hessen": "HE",
-        "Mecklenburg-Vorpommern": "MV",
-        "Niedersachsen": "NI",
-        "Nordrhein-Westfalen": "NW",
-        "Rheinland-Pfalz": "RP",
-        "Saarland": "SL",
-        "Sachsen": "SN",
-        "Sachsen-Anhalt": "ST",
-        "Schleswig-Holstein": "SH",
-        "Thüringen": "TH",
-    }
 
     try:
         # https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Daten/Impfquoten-Tab.html
@@ -180,11 +175,7 @@ def plot(rki_file, context):
         sys.stderr.write("Unable to read file from rki.\n")
         sys.exit(1)
 
-    # read an arbitrary list from pavels homepage to get inhabitants by federal state
-    # https://pavelmayer.de/covid/risks/
-    pavel = pd.read_csv(context["cwd"] + PAVEL_DATA_LOCAL, index_col=0)
-
-    pavel = pavel[pavel["LandkreisTyp"] == "B"][["Landkreis", "Bevoelkerung"]]
+    inhab = get_inhab_data(context)
 
     dosis_first = []
     dosis_second = []
@@ -196,7 +187,7 @@ def plot(rki_file, context):
         # therfore a cleaned state is needed to compare with pavels data
         cleaned_state = state.split(" ")[0]
 
-        series_inhab = pavel[pavel["Landkreis"] == cleaned_state]["Bevoelkerung"]
+        series_inhab = inhab[inhab["Name"] == cleaned_state]["Insgesamt-total"]
         inhabitants.append(series_inhab.values[0])
 
         # amount of first dosis
@@ -313,7 +304,6 @@ def main():
     base_dir = Path(sys.argv[0])
     base_dir = base_dir.parent
     context = {"cwd": str(base_dir)}
-    get_pavel_data(context)
     rki_file = get_file_from_rki()
     if is_rki_file_new(rki_file, context):
         plt = plot(rki_file, context)
