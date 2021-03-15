@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 import math
 import sys
 from datetime import datetime
@@ -11,10 +12,6 @@ import requests as rq
 
 SOURCE_FILE = "/all-series.csv"
 SOURCE_URL = "https://pavelmayer.de/covid/risks/all-series.csv"
-
-LK = ["SK Rostock", "Mecklenburg-Vorpommern", "Deutschland"]
-# LK = []
-
 LAST_SIZE_FILE = "/all-series.size"
 
 
@@ -32,10 +29,7 @@ def prepare_data(ctx):
     # build a map with all counties or take counties from given list
     lk_map = {}  # lk -> [(date, inzidenz) ...]
 
-    if len(LK) == 0:
-        lks = pavel[cols[1]].unique().tolist()
-    else:
-        lks = LK
+    lks = ctx["lks"]
 
     # fill map with datapoints
     for lk in lks:
@@ -57,6 +51,26 @@ def prepare_data(ctx):
     ctx["data"] = lk_map
 
 
+def get_all_lks(ctx):
+    """Return a list with all counties."""
+    pavel = pd.read_csv(ctx["cwd"] + SOURCE_FILE)
+    return pavel["Landkreis"].unique().tolist()
+
+
+def show_lks(ctx):
+    """Print a list of available counties."""
+    for lk in get_all_lks(ctx):
+        print(lk)
+
+
+def check_for_invalid_lks(ctx):
+    """Exit script if a given Landkreis is unknown."""
+    for lk in ctx["lks"]:
+        if lk not in get_all_lks(ctx):
+            print(f'"{lk}" unbekannt. Anzeige aller möglichen Landkreise mit -a')
+            sys.exit(1)
+
+
 def get_remote_file_size():
     """Do a HEAD request to obtain file size."""
     r = rq.head(url=SOURCE_URL)
@@ -64,7 +78,7 @@ def get_remote_file_size():
     if r.status_code == 200:
         return int(r.headers["Content-Length"])
     else:
-        sys.stderr(
+        print(
             f"""
         unable to obtain filesize via head request\n{r.status_code - r.reason}"""
         )
@@ -95,7 +109,7 @@ def get_source_file(ctx):
         last_path.write_text(f"{r.headers['Content-Length']}")
 
     else:
-        sys.stderr(f"unable to download source file \n{r.status_code - r.reason}")
+        print(f"unable to download source file \n{r.status_code - r.reason}")
         sys.exit(1)
 
 
@@ -117,14 +131,10 @@ def fetch_source(ctx):
 
 def plot(ctx):
     """Plot the prepared data."""
-    plt.figure(figsize=(16, 8))
+    plt.figure(figsize=(16, 9))
     plt.style.use("seaborn")
-    plt.title(
-        "Pandemieverlauf für ausgewählte Landkreise",
-        fontsize=20,
-    )
-    plt.ylabel("Inzidenz Fälle pro 100.000 Einwohner", fontsize=16)
-    # plt.xlabel("Time in minutes", fontsize=22)
+    plt.title("Pandemieverlauf für ausgewählte Landkreise", fontsize=20, pad=20)
+    plt.ylabel("Fälle pro 100.000 Einwohner", fontsize=16, labelpad=20)
     plt.xticks(size=12, rotation=45)
     plt.yticks(size=14)
 
@@ -150,21 +160,47 @@ def plot(ctx):
         ncol=2,
         fontsize=13,
     )
+
     plt.savefig("pandemic_course.png")
 
 
 def main():
     """Start procedure."""
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        "-l",
+        "--landkreis",
+        type=str,
+        action="append",
+        help="Auswahl des Landkreises",
+    )
+    parser.add_argument(
+        "-a",
+        "--all",
+        action="store_true",
+        help="Ausgabe aller möglichen Landkreise.",
+    )
+
+    args = parser.parse_args()
+
     # build context
     base_dir = Path(sys.argv[0])
     base_dir = base_dir.parent
     context = {"cwd": str(base_dir)}
 
+    if args.all:
+        show_lks(context)
+        sys.exit(0)
+
+    context["lks"] = args.landkreis
+    check_for_invalid_lks(context)
+
     # fetch recent data from pavel's homepage
     # if fetch_source(context):
     #    context["plot_data"] = prepare_data(context)
 
-    fetch_source(context)
+    # fetch_source(context)
     prepare_data(context)
     plot(context)
 
