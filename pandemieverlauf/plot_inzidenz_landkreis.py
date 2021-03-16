@@ -63,16 +63,12 @@ def prepare_data(ctx):
                 dt = datetime(int(d[2]), int(d[1]), int(d[0]))
                 lk_map[lk].append((dt, row[cols[3]]))
 
-    # build a list with dates
-
-    for k, v in lk_map.items():
-        print(f"{k} -> {len(v)}")
-
     ctx["data"] = lk_map
 
 
 def get_all_lks(ctx):
     """Return a list with all counties."""
+    fetch_source(ctx)
     pavel = pd.read_csv(ctx["cwd"] + SOURCE_FILE)
     return pavel["Landkreis"].unique().tolist()
 
@@ -141,7 +137,6 @@ def fetch_source(ctx):
         last_size = int(last_path.read_text())
         remote_size = get_remote_file_size()
         if last_size == remote_size:
-            print(last_size, remote_size)
             return False  # no new data available
         else:
             get_source_file(ctx)
@@ -217,12 +212,9 @@ def main():
     check_for_invalid_lks(context)
 
     # fetch recent data from pavel's homepage
-    # if fetch_source(context):
-    #    context["plot_data"] = prepare_data(context)
-
-    # fetch_source(context)
-    prepare_data(context)
-    plot(context)
+    if fetch_source(context):
+        prepare_data(context)
+        plot(context)
 
 
 main()
