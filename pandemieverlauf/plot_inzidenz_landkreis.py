@@ -37,11 +37,12 @@ LAST_SIZE_FILE = "/all-series.size"
 
 def prepare_data(ctx):
     """Filter the source file for needed data points."""
+    # column names for pavels risk-table version 1.0.2.0
     cols = [
         "Datum",
         "Landkreis",
         "AnzahlFall",
-        "InzidenzFallNeu-Meldung-letze-7-Tage-7-Tage",
+        "InzidenzFallNeu_7TageSumme",
     ]
 
     pavel = pd.read_csv(ctx["cwd"] + SOURCE_FILE)
@@ -68,7 +69,6 @@ def prepare_data(ctx):
 
 def get_all_lks(ctx):
     """Return a list with all counties."""
-    fetch_source(ctx)
     pavel = pd.read_csv(ctx["cwd"] + SOURCE_FILE)
     return pavel["Landkreis"].unique().tolist()
 
@@ -130,14 +130,14 @@ def get_source_file(ctx):
 
 
 def fetch_source(ctx):
-    """Download new data if available and return True, otherwise false."""
+    """Download new data if available."""
     last_path = Path(ctx["cwd"] + LAST_SIZE_FILE)
 
     if last_path.is_file():
         last_size = int(last_path.read_text())
         remote_size = get_remote_file_size()
         if last_size == remote_size:
-            return False  # no new data available
+            return  # no new data available
         else:
             get_source_file(ctx)
     else:
@@ -176,6 +176,7 @@ def plot(ctx):
         fontsize=13,
     )
 
+    print("WRITE FILE:")
     plt.savefig("pandemic_course.png")
 
 
@@ -209,12 +210,12 @@ def main():
         sys.exit(0)
 
     context["lks"] = args.landkreis
-    check_for_invalid_lks(context)
 
     # fetch recent data from pavel's homepage
-    if fetch_source(context):
-        prepare_data(context)
-        plot(context)
+    fetch_source(context)
+    check_for_invalid_lks(context)
+    prepare_data(context)
+    plot(context)
 
 
 main()
