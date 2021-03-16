@@ -1,11 +1,12 @@
-<h1 align="center">covid19-Impfmonitoring</h1>
+<h1 align="center">covid19-Plots</h1>
+
 
 <p align="center">
 <a href="https://github.com/meetunix/covid19-impfmonitoring-plot/blob/main/LICENSE" title="License">
 <img src="https://img.shields.io/badge/License-Apache%202.0-green.svg?style=flat"></a>
 </p>
 
-Das Python3-Skript `plot_vaccination_ratio.py` generiert folgenden Plot
+Das Python3-Skript `impfmonitoring/plot_vaccination_ratio.py` generiert folgenden Plot
 auf meiner Website: [Covid-19 Impfmonitoring](https://nachtsieb.de/covid-19.html).
 
 <img src="https://nachtsieb.de/img/current_vaccination.png">
