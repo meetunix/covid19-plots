@@ -231,7 +231,7 @@ def plot(rki_file, context):
     plt.style.use("seaborn")
     plt.ylabel("%", fontsize=22, labelpad=30)
     names = [
-        f"{s}\n({str(round(i, 2))})\n\n[{str(round(j, 2))}]"
+        f"{s}\n({str(round(i, 1))})\n\n[{str(round(j, 1))}]"
         for s, i, j in zip(states_short, vacc_rate, vacc_rate_2)
     ]
     plt.xticks(range(STATES + 1), names, size=14)
