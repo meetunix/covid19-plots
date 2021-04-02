@@ -131,25 +131,54 @@ def get_source_file(ctx):
 
 def fetch_source(ctx):
     """Download new data if available."""
-    last_path = Path(ctx["cwd"] + LAST_SIZE_FILE)
+    # debug mode: only check if file is present
+    if ctx["debug"]:
+        source_path = Path(ctx["cwd"] + SOURCE_FILE)
+        if source_path.exists():
+            return
+        else:
+            print(
+                f"Source: {SOURCE_FILE} not present, not downloades while in debug mode"
+            )
+            sys.exit(1)
+    else:
 
-    if last_path.is_file():
-        last_size = int(last_path.read_text())
-        remote_size = get_remote_file_size()
-        if last_size == remote_size:
-            return  # no new data available
+        last_path = Path(ctx["cwd"] + LAST_SIZE_FILE)
+
+        if last_path.is_file():
+            last_size = int(last_path.read_text())
+            remote_size = get_remote_file_size()
+            if last_size == remote_size:
+                return  # no new data available
+            else:
+                get_source_file(ctx)
         else:
             get_source_file(ctx)
-    else:
-        get_source_file(ctx)
+
+
+def get_last_date(ctx):
+    date_list = [date for date, _ in ctx["data"][ctx["lks"][0]]]
+    return date_list[-1]
 
 
 def plot(ctx):
     """Plot the prepared data."""
+
+    last_date = get_last_date(ctx)
+    date_string = last_date.strftime("%d.%m.%Y")
+
     plt.figure(figsize=(16, 9))
     plt.style.use("seaborn")
-    plt.title("Pandemieverlauf für ausgewählte Landkreise", fontsize=20, pad=20)
-    plt.ylabel("Fälle pro 100.000 Einwohner", fontsize=16, labelpad=20)
+    plt.title(
+        f"Pandemieverlauf für ausgewählte Landkreise - Stand: {date_string}",
+        fontsize=20,
+        pad=20,
+    )
+    plt.ylabel(
+        "Inzidenz - Fälle pro 100.000 Einwohner im 7 Tage Intervall",
+        fontsize=16,
+        labelpad=20,
+    )
     plt.xticks(size=12, rotation=45)
     plt.yticks(size=14)
 
@@ -174,9 +203,10 @@ def plot(ctx):
         shadow=True,
         ncol=2,
         fontsize=13,
+        title="Quelle: pavelmayer.de/covid/risks/",
     )
 
-    print("WRITE FILE:")
+    # print(f"writefile: {SOURCE_FILE}")
     plt.savefig("pandemic_course.png")
 
 
@@ -189,13 +219,21 @@ def main():
         "--landkreis",
         type=str,
         action="append",
-        help="Auswahl des Landkreises",
+        help="Auswahl des Landkreises. Kann mehrfach verwendet werden.",
     )
+
     parser.add_argument(
         "-a",
         "--all",
         action="store_true",
         help="Ausgabe aller möglichen Landkreise.",
+    )
+
+    parser.add_argument(
+        "-d",
+        "--debug",
+        action="store_true",
+        help="Datenquelle wird nicht heruntergeladen.",
     )
 
     args = parser.parse_args()
@@ -205,11 +243,12 @@ def main():
     base_dir = base_dir.parent
     context = {"cwd": str(base_dir)}
 
+    context["lks"] = args.landkreis
+    context["debug"] = args.debug
+
     if args.all:
         show_lks(context)
         sys.exit(0)
-
-    context["lks"] = args.landkreis
 
     # fetch recent data from pavel's homepage
     fetch_source(context)
