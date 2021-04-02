@@ -71,7 +71,7 @@ python plot_pandemic_course.py -a
 
 Der Plot steht unter dem Namen `pandemic_course.png` zur Verfügung.
 
-Vor jedem Plot wird geprüft ob aktualisierte Quelldaten auf
-[pavelmeyer.de](https://pavelmayer.de/covid/risks/) vorliegen und nur da heruntergeladen.
-Soll auch diese Prüfung unterbleiben und keine Aktualisierung der Quelldaten erfolgen, 
+Vor jedem Plot wird geprüft, ob aktualisierte Quelldaten auf
+[pavelmeyer.de](https://pavelmayer.de/covid/risks/).
+Soll auch diese Prüfung unterbleiben und keine Aktualisierung der Quelldaten erfolgen,
 kann man option `-d` verwenden.
