@@ -207,7 +207,7 @@ def plot(ctx):
     )
 
     # print(f"writefile: {SOURCE_FILE}")
-    plt.savefig("pandemic_course.png")
+    plt.savefig(f"{ctx['cwd']}/pandemic_course.png")
 
 
 def main():
