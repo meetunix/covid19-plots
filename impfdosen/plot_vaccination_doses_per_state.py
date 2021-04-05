@@ -24,6 +24,7 @@ limitations under the License.
 
 import pickle
 import sys
+from datetime import datetime
 from io import BytesIO
 from pathlib import Path
 
@@ -46,6 +47,7 @@ class Sources:
         self.__vacc_url = vacc_url
         self.__etags = {f"{delivery_url}": None, f"{vacc_url}": None}
         self.__data = {f"{delivery_url}": None, f"{vacc_url}": None}
+        self.__date = None
 
     def set_etag(self, etag, url):
         if url not in self.__etags.keys:
@@ -69,6 +71,9 @@ class Sources:
 
         return not (local_etag == remote_etag)
 
+    def get_date_string(self):
+        return self.__date.strftime("%d.%m.%Y")
+
     def download_sources(self):
         """Download data source files if necessary."""
         urls = self.get_urls()
@@ -80,6 +85,12 @@ class Sources:
                     self.__data[url] = r.content
                     # update etags
                     self.__etags[url] = r.headers["etag"]
+                    # update date
+                    date_string = r.headers["last-modified"]
+                    self.__date = datetime.strptime(
+                        date_string, "%a, %d %b %Y %H:%M:%S %Z"
+                    )
+
                 else:
                     print(
                         f"unable to get source {url} \n{r.status_code - r.reason}"
@@ -129,12 +140,12 @@ def prepare_data(context, urls, source_data):
         v = vaccination[vaccination["code"] == state][["vaccinationsTotal"]].values
 
         data[state] = (delivered, int(v))
-        print(state, data[state])
+        # print(state, data[state])
 
     context["data"] = data
 
 
-def plot(context):
+def plot(context, sources):
 
     states = context["states"]
     states_short = [n.split("-")[1] for n in states]
@@ -158,10 +169,6 @@ def plot(context):
     # percentage of unused dosis
     rest = [100 - i for i in used_doses_norm]
 
-    print(used_doses_norm)
-    print()
-    print(rest)
-
     plt.figure(figsize=(16, 9))
     plt.style.use("seaborn")
 
@@ -172,8 +179,9 @@ def plot(context):
 
     plt.xticks(range(len(states)), names, size=14)
     plt.yticks(range(0, 101, 10), size=14)
+    ds = sources.get_date_string()
     plt.title(
-        "Anteil verimpfter zu gelieferten Impfdosen je Bundesland\n",
+        f"Anteil verimpfter und gelieferter Impfdosen nach Bundesländern - {ds}\n",
         fontsize=20,
         fontweight="bold",
         pad=20,
@@ -226,7 +234,7 @@ def main():
 
     sources.download_sources()
     prepare_data(context, urls, sources.get_data())
-    plot(context)
+    plot(context, sources)
 
     # store current state
     store_object(context, sources)
