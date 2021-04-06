@@ -192,7 +192,7 @@ def plot(context, sources):
     plt.bar(
         range(len(states)),
         used_doses_norm,
-        color="#9c9c89",
+        color="#9dad86",
         edgecolor="white",
         width=bar_width,
         label="Anteil verimpfter Dosen",
@@ -201,7 +201,7 @@ def plot(context, sources):
         range(len(states)),
         rest,
         bottom=used_doses_norm,
-        color="#89899c",
+        color="#9686ad",
         edgecolor="white",
         width=bar_width,
         label="Anteil noch nicht verimpfter Dosen",
@@ -216,7 +216,7 @@ def plot(context, sources):
     )
 
     plt.text(-3.9, -5, "Quelle: impfdashboard.de", fontsize=12)
-    plt.savefig(f"{context['cwd']}/ratio_delivered_vaccinated.png")
+    plt.savefig(f"{context['cwd']}/doses_delivered_vaccinated_ratio.png")
 
 
 def main():
