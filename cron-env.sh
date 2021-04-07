@@ -25,5 +25,7 @@ elif [ ! -f $2 ] ; then
 fi
 
 source $activate_path
-eval $interpreter_path $2
+
+eval $interpreter_path $2 $3
+
 deactivate
