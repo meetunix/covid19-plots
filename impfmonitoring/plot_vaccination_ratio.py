@@ -171,8 +171,9 @@ def plot(rki_file, context):
         rki = pd.read_excel(
             rki_file, sheet_name=1, nrows=STATES, skiprows=3, header=None
         )
-    except Exception:
+    except Exception as e:
         sys.stderr.write("Unable to read file from rki.\n")
+        sys.stderr.write(e)
         sys.exit(1)
 
     inhab = get_inhab_data(context)
