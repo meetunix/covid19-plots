@@ -21,98 +21,86 @@ limitations under the License.
 """
 
 import csv
-import hashlib
 import sys
 from datetime import datetime
+from io import BytesIO
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
-import requests
-from bs4 import BeautifulSoup
+import requests as rq
 
-BASE_URL = "https://www.rki.de/"
-URL = (
-    BASE_URL + "DE/Content/InfAZ/N/Neuartiges_Coronavirus/Daten/Impfquoten-Tab.html"
-)
-
+DOSES_URL = "https://impfdashboard.de/static/data/germany_vaccinations_by_state.tsv"
 INHAB_DATA = "/CensusByRKIAgeGroups.csv"
 
-LAST_UPDATE_RKI = "/last_rki_file_hash"
+
+LAST_UPDATE_RKI = "/last_doses_etag"
 FILE_OUT = "Impfstatistik_relativ.png"
 STATES = 16
-
-ARCHIVE = "archiv"
 
 HISTORICAL_STATE_DATA = "/hist_states.csv"
 
 fed_map = {
-    "Baden-Württemberg": "BW",
-    "Bayern": "BY",
-    "Berlin": "BE",
-    "Brandenburg": "BB",
-    "Bremen": "HB",
-    "Hamburg": "HH",
-    "Hessen": "HE",
-    "Mecklenburg-Vorpommern": "MV",
-    "Niedersachsen": "NI",
-    "Nordrhein-Westfalen": "NW",
-    "Rheinland-Pfalz": "RP",
-    "Saarland": "SL",
-    "Sachsen": "SN",
-    "Sachsen-Anhalt": "ST",
-    "Schleswig-Holstein": "SH",
-    "Thüringen": "TH",
+    "DE-BW": "Baden-Württemberg",
+    "DE-BY": "Bayern",
+    "DE-BE": "Berlin",
+    "DE-BB": "Brandenburg",
+    "DE-HB": "Bremen",
+    "DE-HH": "Hamburg",
+    "DE-HE": "Hessen",
+    "DE-MV": "Mecklenburg-Vorpommern",
+    "DE-NI": "Niedersachsen",
+    "DE-NW": "Nordrhein-Westfalen",
+    "DE-RP": "Rheinland-Pfalz",
+    "DE-SL": "Saarland",
+    "DE-SN": "Sachsen",
+    "DE-ST": "Sachsen-Anhalt",
+    "DE-SH": "Schleswig-Holstein",
+    "DE-TH": "Thüringen",
 }
 
 
-def get_file_from_rki():
-    """Scrape the rki page for correct link and return downloaded data."""
-    response = requests.get(URL)
-
-    soup = BeautifulSoup(response.text, "html.parser")
-
-    a_tags = soup.findAll("a")
-
-    link = ""
-    for tag in a_tags:
-        try:
-            link = str(tag["href"])
-            if link.index("Impfquotenmonitoring.xlsx"):
-                break
-        except KeyError:
-            pass
-        except ValueError:
-            pass
-
-    link = BASE_URL + link
-    response = requests.get(link)
-
-    excel_file = response.content
-
-    return excel_file
+def get_remote_etag(url):
+    """Fetch etag from HTTP HEAD request for url."""
+    r = rq.head(url)
+    if r.status_code == 200:
+        # print(r.headers["etag"])
+        return r.headers["etag"]
+    else:
+        print(f"unable to get etag \n{r.status_code} - {r.reason}")
+        sys.exit(1)
 
 
-def is_rki_file_new(rki_file, context):
-    """Return true if the downloaded rki file is newer than the last one.
+def is_dashboard_file_new(context):
+    """Return true if the downloaded file is newer than the last one.
 
     If no entry in LAST_UPDATE_FILE exists, a new entry will be created.
     """
-    current_hash = hashlib.sha256(rki_file).hexdigest()
+    remote_etag = get_remote_etag(DOSES_URL)
     last_path = Path(context["cwd"] + LAST_UPDATE_RKI)
 
     if last_path.is_file():
         last_log = last_path.read_text()
-        old_hash = last_log.split(";")[1]
-        if current_hash == old_hash:
+        old_etag = last_log.split(";")[1]
+        if remote_etag == old_etag:
             return False
         else:
             last_path.unlink()
-            last_path.write_text(f"{get_date_string()};{current_hash}")
+            last_path.write_text(f"{get_date_string()};{remote_etag}")
             return True
     else:
-        last_path.write_text(f"{get_date_string()};{current_hash}")
+        last_path.write_text(f"{get_date_string()};{remote_etag}")
         return True
+
+
+def get_source(url):
+    """Download data ."""
+    r = rq.get(url)
+    if r.status_code == 200:
+        return r.content
+    else:
+        sys.stderr.write(f"unable to get source {url} \n{r.status_code} - {r.reason}\n")
+        sys.exit(1)
 
 
 def get_inhab_data(context):
@@ -120,18 +108,10 @@ def get_inhab_data(context):
     file_path = Path(context["cwd"] + INHAB_DATA)
 
     if not file_path.is_file():
-        sys.stderr(f"Unable to load {INHAB_DATA}")
+        sys.stderr.write(f"Unable to load {INHAB_DATA}")
         sys.exit(2)
 
     return pd.read_csv(context["cwd"] + INHAB_DATA)
-
-
-def store_rki_file(rki_file, context):
-    """Store the previously downloaded file from RKI."""
-    filename = f"{context['cwd']}/{ARCHIVE}/{get_date_string()}-Impfmonitoring.xlsx"
-
-    with open(filename, "wb") as f:
-        f.write(rki_file)
 
 
 def get_date_string():
@@ -163,17 +143,14 @@ def write_state_data_to_csv(heading, values, context):
         csv_writer.writerow(values)
 
 
-def plot(rki_file, context):
+def plot(doses_file, context):
     """Plot a stacked graph."""
 
     try:
-        # https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Daten/Impfquoten-Tab.html
-        rki = pd.read_excel(
-            rki_file, sheet_name=1, nrows=STATES, skiprows=3, header=None
-        )
+        doses = pd.read_table(BytesIO(doses_file))
     except Exception as e:
-        sys.stderr.write("Unable to read file from rki.\n")
-        sys.stderr.write(e)
+        sys.stderr.write("Unable to read doses_file.\n")
+        sys.stderr.write(str(e))
         sys.exit(1)
 
     inhab = get_inhab_data(context)
@@ -181,26 +158,20 @@ def plot(rki_file, context):
     dosis_first = []
     dosis_second = []
     inhabitants = []
-    states_short = []
-    for i in range(STATES):
-        state = rki[1][i]
-        # there are annotation directly added in the field separated by space
-        # therfore a cleaned state is needed to compare with pavels data
-        cleaned_state = state.split(" ")[0]
+    states_short = [state.split("-")[1] for state in doses["code"].tolist()]
+    for state in doses["code"].tolist():
 
-        series_inhab = inhab[inhab["Name"] == cleaned_state]["Insgesamt-total"]
+        long_state = fed_map[state]
+        series_inhab = inhab[inhab["Name"] == long_state]["Insgesamt-total"]
         inhabitants.append(series_inhab.values[0])
 
         # amount of first dosis
-        series_dosis_first = rki[rki[1] == state][3]
+        series_dosis_first = doses[doses["code"] == state]["peopleFirstTotal"]
         dosis_first.append(series_dosis_first.values[0])
 
         # amount of second dosis
-        # NOTE: if new vaccines are allowed this column must be incremented
-        series_dosis_second = rki[rki[1] == state][9]
+        series_dosis_second = doses[doses["code"] == state]["peopleFullTotal"]
         dosis_second.append(series_dosis_second.values[0])
-
-        states_short.append(fed_map[cleaned_state])
 
     # add country wide data
     states_short.append("DE")
@@ -232,8 +203,7 @@ def plot(rki_file, context):
     plt.style.use("seaborn")
     plt.ylabel("%", fontsize=22, labelpad=30)
     names = [
-        f"{s}\n({str(round(i, 1))})\n\n[{str(round(j, 1))}]"
-        for s, i, j in zip(states_short, vacc_rate, vacc_rate_2)
+        f"{s}\n({str(round(i, 1))})\n\n[{str(round(j, 1))}]" for s, i, j in zip(states_short, vacc_rate, vacc_rate_2)
     ]
     plt.xticks(range(STATES + 1), names, size=14)
     plt.yticks(range(0, 101, 10), size=14)
@@ -281,23 +251,8 @@ def plot(rki_file, context):
         fontsize=16,
     )
 
-    plt.text(-3.5, -3, "Quelle: RKI", fontsize=12)
-
-    return plt
-
-
-def store_plot(plot, context):
-    """Store the plot into the archive and link to FILE_OUT."""
-    # create archive dir
-    archive_path = Path(ARCHIVE)
-    archive_path.mkdir(exist_ok=True)
-
-    filename = f"{context['cwd']}/{ARCHIVE}/{get_date_string()}-{FILE_OUT}"
-    link_path = Path(context["cwd"] + "/" + FILE_OUT)
-    plt.savefig(filename)
-    if link_path.exists():
-        link_path.unlink()
-    link_path.symlink_to(filename)
+    plt.text(-3.9, -5, "Quelle: impfdashboard.de", fontsize=12)
+    plt.savefig(f"{context['cwd']}/{FILE_OUT}")
 
 
 def main():
@@ -305,11 +260,9 @@ def main():
     base_dir = Path(sys.argv[0])
     base_dir = base_dir.parent
     context = {"cwd": str(base_dir)}
-    rki_file = get_file_from_rki()
-    if is_rki_file_new(rki_file, context):
-        plt = plot(rki_file, context)
-        store_plot(plt, context)
-        store_rki_file(rki_file, context)
+    if is_dashboard_file_new(context):
+        doses_file = get_source(DOSES_URL)
+        plot(doses_file, context)
 
 
 main()

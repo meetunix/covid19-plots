@@ -1,7 +1,7 @@
 impfmonitoring/archiv/*
 *.png
 *.csv
-last_rki_file_hash
+last_doses_etag
 *.swp
 *.size
 *.pickle
