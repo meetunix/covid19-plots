@@ -9,19 +9,18 @@
 
 ## Impfmonitoring nach Bundesländern
 
+### Anteil verabreichter Impfdosen relativ zur Bevölkerung
 Das Python3-Skript `impfmonitoring/plot_vaccination_ratio.py` generiert folgenden Plot
 auf meiner Website: [Covid-19 Impfmonitoring](https://nachtsieb.de/covid-19.html).
 
-<img src="https://nachtsieb.de/img/current_vaccination.png">
+<p align="center">
+<img width="480" src="https://nachtsieb.de/img/current_vaccination.png">
+</p>
 
-
-Dazu durchsucht es die
-[Impfmonitoring-Website](https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Daten/Impfquoten-Tab.html)
-des Robert Koch Institutes nach der
-aktuellen Excel-Datei, ermittelt die benötigten Daten, erstellt die Grafik und schreibt
+Als Quelle verwendet es die Daten vom [Impfdashboard](https://impfdashboard.de/daten), erstellt die Grafik und schreibt
 die Summe aller bisher verabreichten Dosen in die Datei `hist_states.csv`, aufgeschlüsselt
 nach Bundesland. Ein neuer Plot wird nur bei Änderungen der entsprechenden
-Excel-Tabelle erstellt.
+Quelldatei erstellt.
 
 Die benötigten
 [Einwohnerdaten](https://github.com/pavel-mayer/Corona/blob/master/CensusByRKIAgeGroups.csv)
@@ -37,10 +36,20 @@ python plot_vaccination_ratio.py
 ```
 
 Der Plot steht danach unter dem Namen `Impfstatistik_relativ.png` zur Verfügung.
-Die Excel-Dateien und neu generierte Grafiken werden im `archiv`-Verzeichnis gespeichert.
+
+## Anteil der verabreichten und gelieferten Impfdosen
+
+Das Skript `impfdosen/plot_vaccination_doses_per_state.py` erstellt folgenden Plot, der ebenfalls auf meiner
+[Homepage](https://nachtsieb.de/covid-19.html) zu finden ist.
+
+<p align="center">
+<img  width="480" src="https://nachtsieb.de/img/doses_delivered_vaccinated_ratio.png">
+</p>p>
+
+Als Quelle dient hier ebenfalls das [Impfdashboard](https://impfdashboard.de/daten). 
 
 
-### Pandemieverlauf für Landkreise und Bundesländer
+## Pandemieverlauf für Landkreise und Bundesländer
 
 Das Skript `impfmonitoring/plot_pandemic_course.py` generiert folgenden Plot
 auf meiner Website: [Covid-19 Impfmonitoring](https://nachtsieb.de/covid-19.html).
@@ -48,8 +57,9 @@ auf meiner Website: [Covid-19 Impfmonitoring](https://nachtsieb.de/covid-19.html
 Als Datenquelle verwendet es die aufbereiteten Daten von
 [Pavel Meyer](https://pavelmayer.de/covid/risks/).
 
-<img src="https://nachtsieb.de/img/pandemic_course.png">
-
+<p align="center">
+<img  width="480" src="https://nachtsieb.de/img/pandemic_course.png">
+</p>
 
 #### Verwendung
 
@@ -72,6 +82,6 @@ python plot_pandemic_course.py -a
 Der Plot steht unter dem Namen `pandemic_course.png` zur Verfügung.
 
 Vor jedem Plot wird geprüft, ob aktualisierte Quelldaten auf
-[pavelmeyer.de](https://pavelmayer.de/covid/risks/).
+[pavelmeyer.de](https://pavelmayer.de/covid/risks/) zur Verfügung stehen.
 Soll auch diese Prüfung unterbleiben und keine Aktualisierung der Quelldaten erfolgen,
-kann man option `-d` verwenden.
+kann die option `-d` verwendet werden.
