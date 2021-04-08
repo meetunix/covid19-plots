@@ -96,7 +96,7 @@ def get_remote_file_size():
     else:
         print(
             f"""
-        unable to obtain filesize via head request\n{r.status_code - r.reason}"""
+        unable to obtain filesize via head request\n{r.status_code} - {r.reason}"""
         )
         sys.exit(1)
 
@@ -125,7 +125,7 @@ def get_source_file(ctx):
         last_path.write_text(f"{r.headers['Content-Length']}")
 
     else:
-        print(f"unable to download source file \n{r.status_code - r.reason}")
+        print(f"unable to download source file \n{r.status_code} - {r.reason}")
         sys.exit(1)
 
 
@@ -241,10 +241,7 @@ def main():
     # build context
     base_dir = Path(sys.argv[0])
     base_dir = base_dir.parent
-    context = {"cwd": str(base_dir)}
-
-    context["lks"] = args.landkreis
-    context["debug"] = args.debug
+    context = {"cwd": str(base_dir), "lks": args.landkreis, "debug": args.debug}
 
     if args.all:
         show_lks(context)
