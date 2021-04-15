@@ -23,6 +23,7 @@ limitations under the License.
 import argparse
 import math
 import sys
+import re
 from datetime import datetime
 from pathlib import Path
 
@@ -37,7 +38,7 @@ LAST_SIZE_FILE = "/all-series.size"
 
 def prepare_data(ctx):
     """Filter the source file for needed data points."""
-    # column names for pavels risk-table version 1.0.2.0
+    # column names for pavels risk-table version 1.0.2.0 and up
     cols = [
         "Datum",
         "Landkreis",
@@ -62,7 +63,8 @@ def prepare_data(ctx):
                 # dt = datetime.strptime(row[cols[0]], "%d.%m.%y")
                 d = row[cols[0]].split(".")  # source example: 23.3.2021
                 dt = datetime(int(d[2]), int(d[1]), int(d[0]))
-                lk_map[lk].append((dt, row[cols[3]]))
+                if ctx["start_date"] <= dt:
+                    lk_map[lk].append((dt, row[cols[3]]))
 
     ctx["data"] = lk_map
 
@@ -96,7 +98,7 @@ def get_remote_file_size():
     else:
         print(
             f"""
-        unable to obtain filesize via head request\n{r.status_code} - {r.reason}"""
+        unable to obtain file size via head request\n{r.status_code} - {r.reason}"""
         )
         sys.exit(1)
 
@@ -137,9 +139,7 @@ def fetch_source(ctx):
         if source_path.exists():
             return
         else:
-            print(
-                f"Source: {SOURCE_FILE} not present, not downloades while in debug mode"
-            )
+            print(f"Source: {SOURCE_FILE} not present, not downloaded while in debug mode")
             sys.exit(1)
     else:
 
@@ -165,13 +165,15 @@ def plot(ctx):
     """Plot the prepared data."""
 
     last_date = get_last_date(ctx)
-    date_string = last_date.strftime("%d.%m.%Y")
+    last_date_string = last_date.strftime("%d.%m.%Y")
+    start_date_string = ctx["start_date"].strftime("%d.%m.%Y")
 
     plt.figure(figsize=(16, 9))
     plt.style.use("seaborn")
     plt.title(
-        f"Pandemieverlauf für ausgewählte Landkreise - Stand: {date_string}",
+        f"Pandemieverlauf für ausgewählte Landkreise - vom {start_date_string} bis {last_date_string}",
         fontsize=20,
+        fontweight="bold",
         pad=20,
     )
     plt.ylabel(
@@ -207,7 +209,33 @@ def plot(ctx):
     )
 
     # print(f"writefile: {SOURCE_FILE}")
-    plt.savefig(f"{ctx['cwd']}/pandemic_course.png")
+    plt.savefig(f"{ctx['cwd']}/{ctx['output']}")
+
+
+def check_and_get_date(date_string):
+    """Checks if a given string is a valid date of the format YYYY-MM-DD."""
+
+    start_date = None
+    today = datetime.utcnow()
+    try:
+        start_date = datetime.strptime(date_string, "%Y-%m-%d")
+        if start_date > today:
+            raise ValueError("The passed date is newer than today.")
+    except ValueError as e:
+        sys.stderr.write(f"The given start date {date_string} is invalid, use YYYY-MM-DD!\n")
+        sys.stderr.write(f"Error-Message: {e}\n")
+        sys.exit(-1)
+    return start_date
+
+
+def correct_filename(filename):
+    """Out a .png suffix to the passed filename if necessary."""
+    p = re.compile(".*\\.png", re.IGNORECASE)
+
+    if not p.match(filename):
+        filename += ".png"
+
+    return filename
 
 
 def main():
@@ -236,12 +264,34 @@ def main():
         help="Datenquelle wird nicht heruntergeladen.",
     )
 
+    parser.add_argument(
+        "-s",
+        "--start-date",
+        type=str,
+        default="2020-03-15",
+        help="Startdatum der Anzeige: YYYY-MM-DD",
+    )
+
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=str,
+        default="pandemic_course.png",
+        help="The filename the PNG graphic will be saved to.",
+    )
+
     args = parser.parse_args()
 
-    # build context
+    # build up context
     base_dir = Path(sys.argv[0])
     base_dir = base_dir.parent
-    context = {"cwd": str(base_dir), "lks": args.landkreis, "debug": args.debug}
+    context = {
+        "cwd": str(base_dir),
+        "lks": args.landkreis,
+        "debug": args.debug,
+        "output": correct_filename(args.output),
+        "start_date": check_and_get_date(args.start_date),
+    }
 
     if args.all:
         show_lks(context)

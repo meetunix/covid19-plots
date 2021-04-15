@@ -70,16 +70,20 @@ Erstellen eines Plots für mehrere Landkreise, Länder und der Bundesrepublik:
 python plot_pandemic_course.py -l "SK Rostock" -l "Mecklenburg-Vorpommern" -l "LK Rostock" -l "Deutschland"
 ```
 
-
-
 Anzeige aller möglichen Landkreise:
-
 
 ```
 python plot_pandemic_course.py -a
 ```
 
 Der Plot steht unter dem Namen `pandemic_course.png` zur Verfügung.
+
+Es ist auch möglich eine alternative Ausgabedatei und ein **Startdatum** anzugeben:
+
+```
+python plot_pandemic_course.py -l "SK Köln" -l "SK Düsseldorf" -l "SK Bonn" -o nrw_2021.png -s 2021-01-01  
+
+```
 
 Vor jedem Plot wird geprüft, ob aktualisierte Quelldaten auf
 [pavelmeyer.de](https://pavelmayer.de/covid/risks/) zur Verfügung stehen.
