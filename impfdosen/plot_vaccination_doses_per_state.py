@@ -87,14 +87,10 @@ class Sources:
                     self.__etags[url] = r.headers["etag"]
                     # update date
                     date_string = r.headers["last-modified"]
-                    self.__date = datetime.strptime(
-                        date_string, "%a, %d %b %Y %H:%M:%S %Z"
-                    )
+                    self.__date = datetime.strptime(date_string, "%a, %d %b %Y %H:%M:%S %Z")
 
                 else:
-                    print(
-                        f"unable to get source {url} \n{r.status_code - r.reason}"
-                    )
+                    print(f"unable to get source {url} \n{r.status_code - r.reason}")
                     sys.exit(1)
 
     def __get_remote_etag(self, url):
@@ -133,7 +129,9 @@ def prepare_data(context, urls, source_data):
     delivery = pd.read_table(BytesIO(source_data[urls["delivery"]]))
     vaccination = pd.read_table(BytesIO(source_data[urls["vaccination"]]))
     states = delivery["region"].unique().tolist()
+    states.remove("DE-BUND")  # exclude direct deliveries to the federal state, because of very low quantities
     context["states"] = states
+    print(states)
 
     for state in states:
         delivered = int(delivery[delivery["region"] == state][["dosen"]].sum())
@@ -158,10 +156,7 @@ def plot(context, sources):
         vaccinated.append(data[state][1])
 
     # percentage of used doses from delivered doses max 100% for clean presentation
-    used_doses_norm = [
-        100 if (i / j * 100) > 100 else i / j * 100
-        for i, j in zip(vaccinated, delivered)
-    ]
+    used_doses_norm = [100 if (i / j * 100) > 100 else i / j * 100 for i, j in zip(vaccinated, delivered)]
 
     # percentage of used doses from delivered doses
     used_doses = [i / j * 100 for i, j in zip(vaccinated, delivered)]
@@ -173,9 +168,7 @@ def plot(context, sources):
     plt.style.use("seaborn")
 
     plt.ylabel("%", fontsize=22, labelpad=30)
-    names = [
-        f"{s}\n\n({str(round(i, 1))})" for s, i in zip(states_short, used_doses)
-    ]
+    names = [f"{s}\n\n({str(round(i, 1))})" for s, i in zip(states_short, used_doses)]
 
     plt.xticks(range(len(states)), names, size=14)
     plt.yticks(range(0, 101, 10), size=14)
