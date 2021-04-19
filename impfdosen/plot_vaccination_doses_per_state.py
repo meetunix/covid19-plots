@@ -131,7 +131,6 @@ def prepare_data(context, urls, source_data):
     states = delivery["region"].unique().tolist()
     states.remove("DE-BUND")  # exclude direct deliveries to the federal state, because of very low quantities
     context["states"] = states
-    print(states)
 
     for state in states:
         delivered = int(delivery[delivery["region"] == state][["dosen"]].sum())
