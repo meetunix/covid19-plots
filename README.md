@@ -51,7 +51,7 @@ Als Quelle dient hier ebenfalls das [Impfdashboard](https://impfdashboard.de/dat
 
 ## Pandemieverlauf für Landkreise und Bundesländer
 
-Das Skript `impfmonitoring/plot_pandemic_course.py` generiert folgenden Plot
+Das Skript `impfmonitoring/plot_inzidenz_landkreis.py` generiert folgenden Plot
 auf meiner Website: [Covid-19 Impfmonitoring](https://nachtsieb.de/covid-19.html).
 
 Als Datenquelle verwendet es die aufbereiteten Daten von
@@ -67,13 +67,13 @@ Erstellen eines Plots für mehrere Landkreise, Länder und der Bundesrepublik:
 
 
 ```
-python plot_pandemic_course.py -l "SK Rostock" -l "Mecklenburg-Vorpommern" -l "LK Rostock" -l "Deutschland"
+python plot_inzidenz_landkreis.py -l "SK Rostock" -l "Mecklenburg-Vorpommern" -l "LK Rostock" -l "Deutschland"
 ```
 
 Anzeige aller möglichen Landkreise:
 
 ```
-python plot_pandemic_course.py -a
+python plot_inzidenz_landkreis.py -a
 ```
 
 Der Plot steht unter dem Namen `pandemic_course.png` zur Verfügung.
@@ -81,7 +81,7 @@ Der Plot steht unter dem Namen `pandemic_course.png` zur Verfügung.
 Es ist auch möglich eine alternative Ausgabedatei und ein **Startdatum** anzugeben:
 
 ```
-python plot_pandemic_course.py -l "SK Köln" -l "SK Düsseldorf" -l "SK Bonn" -o nrw_2021.png -s 2021-01-01  
+python plot_inzidenz_landkreis.py -l "SK Köln" -l "SK Düsseldorf" -l "SK Bonn" -o nrw_2021.png -s 2021-01-01  
 
 ```
 

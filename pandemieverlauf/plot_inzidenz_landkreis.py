@@ -24,6 +24,7 @@ import argparse
 import math
 import sys
 import re
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -103,7 +104,7 @@ def get_remote_file_size():
         sys.exit(1)
 
 
-def get_source_file(ctx):
+def download_source_file(ctx):
     """
     Download source file and save it to disk.
 
@@ -115,20 +116,44 @@ def get_source_file(ctx):
     r = rq.get(SOURCE_URL)
 
     if r.status_code == 200:
+        file_length = len(r.content)
 
         # write data
         if source_path.is_file():
             source_path.unlink()
-        source_path.write_bytes(r.content)
+
+        if file_length == ctx["remote_size"]:
+            source_path.write_bytes(r.content)
+        else:
+            raise ValueError(f"Downloaded file size {file_length} does not match remote size {ctx['remote_size']}")
 
         # write file size to file
         if last_path.is_file():
             last_path.unlink()
-        last_path.write_text(f"{r.headers['Content-Length']}")
+        # last_path.write_text(f"{r.headers['Content-Length']}")
+        last_path.write_text(f"{file_length}")
 
     else:
         print(f"unable to download source file \n{r.status_code} - {r.reason}")
         sys.exit(1)
+
+
+def get_source_file(ctx):
+    """Try to download the source file for retry times if an error happens."""
+
+    success = False
+    retry = 3
+    while not success:
+        try:
+            download_source_file(ctx)
+            success = True
+        except ValueError as e:
+            print(e)
+            time.sleep(20)
+            if retry <= 0:
+                print(f"unable to get whole source file")
+                sys.exit(1)
+            retry -= 1
 
 
 def fetch_source(ctx):
@@ -144,10 +169,11 @@ def fetch_source(ctx):
     else:
 
         last_path = Path(ctx["cwd"] + LAST_SIZE_FILE)
+        remote_size = get_remote_file_size()
+        ctx["remote_size"] = remote_size
 
         if last_path.is_file():
             last_size = int(last_path.read_text())
-            remote_size = get_remote_file_size()
             if last_size == remote_size:
                 return  # no new data available
             else:
