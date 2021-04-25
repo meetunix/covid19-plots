@@ -129,6 +129,7 @@ def prepare_data(context, urls, source_data):
     delivery = pd.read_table(BytesIO(source_data[urls["delivery"]]))
     vaccination = pd.read_table(BytesIO(source_data[urls["vaccination"]]))
     states = delivery["region"].unique().tolist()
+    states.remove("DE-BUND")  # exclude direct deliveries to the federal state, because of very low quantities
     context["states"] = states
 
     for state in states:
