@@ -222,7 +222,7 @@ def plot(doses_file, context):
         color="darkgreen",
         edgecolor="white",
         width=bar_width,
-        label="[Anteil Zweitimpfung erhalten]",
+        label="[Anteil vollständig geimpft]",
     )
     plt.bar(
         range(STATES + 1),
