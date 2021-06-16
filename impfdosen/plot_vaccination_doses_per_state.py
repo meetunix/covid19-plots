@@ -140,12 +140,10 @@ def prepare_data(context, urls, source_data):
     context["states"] = states
 
     for state in states:
-        print(state)
         delivered = int(delivery[delivery["region"] == state][["dosen"]].sum())
         v = vaccination[vaccination["code"] == state][["vaccinationsTotal"]].values
 
         data[state] = (delivered, int(v))
-        print(state, data[state])
 
     context["data"] = data
 
