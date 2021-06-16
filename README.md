@@ -2,7 +2,7 @@
 
 
 <p align="center">
-<a href="https://github.com/meetunix/covid19-impfmonitoring-plot/blob/main/LICENSE" title="License">
+<a href="https://github.com/meetunix/covid19-plots/blob/main/LICENSE" title="License">
 <img src="https://img.shields.io/badge/License-Apache%202.0-green.svg?style=flat"></a>
 </p>
 

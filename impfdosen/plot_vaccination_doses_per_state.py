@@ -90,7 +90,7 @@ class Sources:
                     self.__date = datetime.strptime(date_string, "%a, %d %b %Y %H:%M:%S %Z")
 
                 else:
-                    print(f"unable to get source {url} \n{r.status_code - r.reason}")
+                    print(f"unable to get source {url} \n{r.status_code}- {r.reason}")
                     sys.exit(1)
 
     def __get_remote_etag(self, url):
@@ -99,7 +99,7 @@ class Sources:
             # print(r.headers["etag"])
             return r.headers["etag"]
         else:
-            print(f"unable to get etag \n{r.status_code - r.reason}")
+            print(f"unable to get etag \n{r.status_code}-{r.reason}")
             sys.exit(1)
 
 
@@ -130,8 +130,8 @@ def prepare_data(context, urls, source_data):
     vaccination = pd.read_table(BytesIO(source_data[urls["vaccination"]]))
     states = delivery["region"].unique().tolist()
 
-    # exclude direct deliveries to the federal state, because of very low quantities
-    for s in ["DE-BUND", "DE-Bund", "de-bund"]:
+    # exclude direct deliveries to the federal state and corporations, because of very low quantities
+    for s in ["DE-BUND", "DE-Bund", "de-bund", "DE-Betriebe"]:
         try:
             states.remove(s)
         except ValueError:
@@ -140,11 +140,12 @@ def prepare_data(context, urls, source_data):
     context["states"] = states
 
     for state in states:
+        print(state)
         delivered = int(delivery[delivery["region"] == state][["dosen"]].sum())
         v = vaccination[vaccination["code"] == state][["vaccinationsTotal"]].values
 
         data[state] = (delivered, int(v))
-        # print(state, data[state])
+        print(state, data[state])
 
     context["data"] = data
 
