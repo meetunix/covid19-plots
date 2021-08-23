@@ -67,7 +67,6 @@ def get_hash(url):
     if r.status_code == 200:
         m = hashlib.sha256()
         m.update(r.content)
-        print(m.hexdigest())
         return m.hexdigest()
     else:
         print(f"unable to get etag \n{r.status_code} - {r.reason}")
