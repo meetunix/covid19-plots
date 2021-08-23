@@ -21,7 +21,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
+import hashlib
 import pickle
 import sys
 from datetime import datetime
@@ -84,22 +84,30 @@ class Sources:
                     # print(f"downloaded the updated file {url.split('/')[-1]}")
                     self.__data[url] = r.content
                     # update etags
-                    self.__etags[url] = r.headers["etag"]
+                    self.__etags[url] = self.__get_remote_etag(url, r)
                     # update date
-                    date_string = r.headers["last-modified"]
+                    date_string = r.headers["date"]
                     self.__date = datetime.strptime(date_string, "%a, %d %b %Y %H:%M:%S %Z")
 
                 else:
                     print(f"unable to get source {url} \n{r.status_code}- {r.reason}")
                     sys.exit(1)
 
-    def __get_remote_etag(self, url):
-        r = rq.head(url)
+    def __get_remote_etag(self, url, request=None):
+        return self.__get_hash(url, request)
+
+    @staticmethod
+    def __get_hash(url, r):
+        """Calculate sha256 over content."""
+        if r is None:
+            r = rq.get(url)
         if r.status_code == 200:
-            # print(r.headers["etag"])
-            return r.headers["etag"]
+            m = hashlib.sha256()
+            m.update(r.content)
+            print(m.hexdigest())
+            return m.hexdigest()
         else:
-            print(f"unable to get etag \n{r.status_code}-{r.reason}")
+            print(f"unable to get etag \n{r.status_code} - {r.reason}")
             sys.exit(1)
 
 

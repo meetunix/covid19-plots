@@ -22,6 +22,7 @@ limitations under the License.
 
 import csv
 import sys
+import hashlib
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
@@ -33,7 +34,7 @@ import requests as rq
 DOSES_URL = "https://impfdashboard.de/static/data/germany_vaccinations_by_state.tsv"
 INHAB_DATA = "/CensusByRKIAgeGroups.csv"
 
-
+# the impfdashboard does not send an eTag anymore but the filename is still the same
 LAST_UPDATE_RKI = "/last_doses_etag"
 FILE_OUT = "Impfstatistik_relativ.png"
 STATES = 16
@@ -59,13 +60,15 @@ fed_map = {
     "DE-TH": "Thüringen",
 }
 
-
-def get_remote_etag(url):
-    """Fetch etag from HTTP HEAD request for url."""
-    r = rq.head(url)
+# they do not send eTag via HEAD anymore (since 2021-08-22)
+def get_hash(url):
+    """Calculate sha256 over content."""
+    r = rq.get(url)
     if r.status_code == 200:
-        # print(r.headers["etag"])
-        return r.headers["etag"]
+        m = hashlib.sha256()
+        m.update(r.content)
+        print(m.hexdigest())
+        return m.hexdigest()
     else:
         print(f"unable to get etag \n{r.status_code} - {r.reason}")
         sys.exit(1)
@@ -76,7 +79,7 @@ def is_dashboard_file_new(context):
 
     If no entry in LAST_UPDATE_FILE exists, a new entry will be created.
     """
-    remote_etag = get_remote_etag(DOSES_URL)
+    remote_etag = get_hash(DOSES_URL)
     last_path = Path(context["cwd"] + LAST_UPDATE_RKI)
 
     if last_path.is_file():
@@ -161,17 +164,18 @@ def plot(doses_file, context):
     states_short = [state.split("-")[1] for state in doses["code"].tolist()]
     for state in doses["code"].tolist():
 
-        long_state = fed_map[state]
-        series_inhab = inhab[inhab["Name"] == long_state]["Insgesamt-total"]
-        inhabitants.append(series_inhab.values[0])
+        if state != "DE-BUND":  # they added DE-BUND on 2021-08-22
+            long_state = fed_map[state]
+            series_inhab = inhab[inhab["Name"] == long_state]["Insgesamt-total"]
+            inhabitants.append(series_inhab.values[0])
 
-        # amount of first dosis
-        series_dosis_first = doses[doses["code"] == state]["peopleFirstTotal"]
-        dosis_first.append(series_dosis_first.values[0])
+            # amount of first dosis
+            series_dosis_first = doses[doses["code"] == state]["peopleFirstTotal"]
+            dosis_first.append(series_dosis_first.values[0])
 
-        # amount of second dosis
-        series_dosis_second = doses[doses["code"] == state]["peopleFullTotal"]
-        dosis_second.append(series_dosis_second.values[0])
+            # amount of second dosis
+            series_dosis_second = doses[doses["code"] == state]["peopleFullTotal"]
+            dosis_second.append(series_dosis_second.values[0])
 
     # add country wide data
     states_short.append("DE")
