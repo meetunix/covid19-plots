@@ -160,7 +160,7 @@ def plot(doses_file, context):
     dosis_first = []
     dosis_second = []
     inhabitants = []
-    states_short = [state.split("-")[1] for state in doses["code"].tolist()]
+    states_short = [state.split("-")[1] for state in doses["code"].tolist() if state != "DE-BUND"]
     for state in doses["code"].tolist():
 
         if state != "DE-BUND":  # they added DE-BUND on 2021-08-22
